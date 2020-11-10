@@ -14,6 +14,8 @@ def runwithheader(pingaddress, header):
    URL = line.replace("\n","").replace("https://","").replace("http://","")
    canary = header + URL
    newpingaddress = pingaddress.replace("REPLACE",canary)
+   if header=="Referer" or header=="Referrer":
+      newpingaddress = "http://" + newpingaddress
    opener.addheaders = [(header, newpingaddress), ('Cache-Control', 'no-transform'), ('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15')]
    print(opener.addheaders)
    print(datetime.now())
@@ -97,7 +99,7 @@ injectable_headers = [
     "X-Forward-For","Base-Url","Http-Url","Proxy-Url","Redirect","Real-Ip","Referer","True-Client-IP",
     "X-WAP-Profile","Uri","Url","X-Host","X-Http-Destinationurl","X-Http-Host-Override",
     "X-Original-Remote-Addr","X-Original-Url","X-Proxy-Url","X-Rewrite-Url","X-Real-Ip","X-Remote-Addr",
-    "X-Custom-IP-Authorization","Client-IP","Connection","Contact","From","Origin"]
+    "X-Custom-IP-Authorization","Client-IP","Connection","Contact","From","Origin","Referrer"]
 for header in injectable_headers:
   runwithheader(pingaddress, header)
   infile.close()
