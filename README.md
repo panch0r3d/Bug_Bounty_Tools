@@ -5,4 +5,6 @@ Random tools I've made for bug bounty hunting
 * headerBlowupURL.py : Send a header of a specified size to tease out an error message that discloses backend server name / version. This works when header size limit lower on the backend server vs the frontend. So the header passes to the backend and triggers the error. See https://research.securitum.com/x-forwarded-for-header-security-problems/ for additional explanation
   Usage: python headerBlowupURL.py https://www.example.com 'X-Forwarded-For' 0 '%' 500
    python headerBlowupURL.py [URL to Test] [Name of the Header] [How many times to repeat the value specified] [The value to repeat in the header] [How much of the response to return (optional default is 500)]
-   
+* CheckPorts.sh - Banner grabbing using telnet through bash 
+  Usage: CheckPorts.sh [Input File of URLs/IPs and Ports] &> [Output File]
+  expected input format 123.123.123.123:8001 or www.example.com:8001
