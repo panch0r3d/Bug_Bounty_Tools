@@ -13,6 +13,6 @@ Random tools I've made for bug bounty hunting
   
 * tinyurl_bruteforce.py - A random brute forcer for shortened URLs (https://www.vanityurlshorteners.com/) *note* watch out for rate limiting
   Usage: python3 tinyurl_bruteforce.py 'https://tinyurl.com/' /tmp/tinyurl.txt 7 'https://www.example.com'
-         tinyurl_bruteforce.py [base url] [output file to save reults to] [max length of random characters appended to base] [optional to filter out results that all
-         point to the same url]
+  Explanation: tinyurl_bruteforce.py [base url] [output file to save reults to] [max length of random characters appended to base] [optional to filter out results that
+  all point to the same url]
 
