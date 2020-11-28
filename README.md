@@ -16,3 +16,4 @@ Random tools I've made for bug bounty hunting
   Explanation: tinyurl_bruteforce.py [base url] [output file to save reults to] [max length of random characters appended to base] [optional to filter out results that
   all point to the same url]
 
+* vuln_files - My personal collection of files with hidden functionality used for testing file uploads
