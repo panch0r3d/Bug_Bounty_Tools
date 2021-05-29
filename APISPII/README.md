@@ -42,6 +42,7 @@ tamper.py  -  tries various http methods, api versioning, addition of parameters
   * flag s - test some interesting strings
   * flag p - tests query parameters by adding a few potentaially interesting ones and duplicating any existing ones with an x appended to the value
   * flag h - tests some potential auth bypassing headers
+
 Examples
 * python3 tamper.py 'https://api.example.com/12345/user' header.txt 1 msiv
 * python3 tamper.py 'https://api.example.com/12345/user' header.txt .5 NA
