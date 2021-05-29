@@ -31,14 +31,18 @@ Examples
 * python3 api_info.py /tmp/listofurls.txt N N 0 N
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Tamper - this tools tries to do all the things that I was trying to remember to do manually for API endpoints. The tool keeps track of what url's have already been checked to avoid hitting the same ones multiple times. It also gets a baseline from the initial GET request for response size and response code so that anything that returns the exact same isn't shown over and over. All of the responses are checked via some pretty simple regexes for PII as well as tokens/keys/secrets and any framework debug pages. A summary of anything interesting found via the regexes is printed before the tool exits.
 
 tamper.py  -  tries various http methods, api versioning, addition of parameters, and auth bypasses to see what changes
-* options (Base URL or input file, header file, time in seconds between requests, optional tests to include (see below)
+* options (Base URL or input file, header file, time in seconds between requests, optional tests to include (see below), optional output file
  * Optional tests:
   * flag v - versioning check looks for some type of numerical version in the url to do search and replace on 
   * flag m - HTTP methods tests 16 valid and 1 invalid HTTP method
   * flag i - test for JSON includes
   * flag s - test some interesting strings
+  * flag p - tests query parameters by adding a few potentaially interesting ones and duplicating any existing ones with an x appended to the value
+  * flag h - tests some potential auth bypassing headers
 Examples
 * python3 tamper.py 'https://api.example.com/12345/user' header.txt 1 msiv
 * python3 tamper.py 'https://api.example.com/12345/user' header.txt .5 NA
+* python3 tamper.py /tmp/listofendpoints.txt header.txt 1 msivph /tmp/outputfile.txt
