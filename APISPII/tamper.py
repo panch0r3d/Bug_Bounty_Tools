@@ -161,11 +161,13 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
         dualprint(Fore.GREEN + "URL: " + url)
         try:
             dualprint(Fore.RED + str("HTTP Status: " + str(e.reason)))
-            responsebody = e.read()
+            responsebody = str(e)
             try:
                 dualprint(str(gzip.decompress(responsebody)[:300]))
+                regexchecks(gzip.decompress(responsebody), url)
             except:
                 dualprint(str(e.read(300).decode("utf8", 'ignore')))
+                regexchecks(e.read(), url)
             #regex results to check for some particular frameworks in debug mode
             #if re.search(r'DEBUG...True', responsebody):
             #    dualprint(Fore.RED + " Possible Django Debug Page Found")
@@ -177,7 +179,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
             #    dualprint(Fore.RED + " Possible API Key Found")
             #if re.search(r'secret', responsebody, re.IGNORECASE):
             #    dualprint(Fore.RED + " Possible secret Found")
-            regexchecks(gzip.decompress(responsebody), url)
+            #regexchecks(gzip.decompress(responsebody), url)
         except:
             dualprint(Fore.RED + "An error occurred")
         dualprint(Fore.WHITE + "")
@@ -295,7 +297,11 @@ def testmethod(url):
         except urllib.error.URLError as e:
             dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
             dualprint(Fore.RED + "Error Returned:" + str(e.reason))
-            responsebody = e.read()
+            try:
+                responsebody = e
+                #.read()
+            except:
+                responsebody = ""
             try:
                 dualprint(str(responsebody.decode("utf8", 'ignore'))[:300])
                 regexchecks(str(responsebody), url)
@@ -342,7 +348,11 @@ def testmethod(url):
                 except urllib.error.URLError as e:
                     dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
                     dualprint(Fore.RED + str("Error Returned:" + str(e.reason)))
-                    responsebody = e.read()
+                    try:
+                        responsebody = e
+                        #.read()
+                    except:
+                        responsebody = ""
                     try:
                         dualprint(str(responsebody.decode("utf8", 'ignore'))[:300])
                         regexchecks(str(responsebody), url)
@@ -514,7 +524,8 @@ def testheaders(url):
         except urllib.error.URLError as e:
             dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
             dualprint(Fore.RED + str("Error Returned:" + str(e.reason)))
-            responsebody = e.read()
+            responsebody = e
+            #.read()
             try:
                 dualprint(str(responsebody.decode("utf8", 'ignore'))[:300])
                 regexchecks(str(responsebody.decode.decode("utf8", 'ignore')))
