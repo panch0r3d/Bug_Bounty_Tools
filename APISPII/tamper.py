@@ -53,6 +53,7 @@ def dualprint(printstring):
 
 def regexchecks(responsebody, url):
     #regex results to check for some particular frameworks in debug mode
+    #print("Regex: " + responsebody)
     piiList = ""
     alertname = ""
     if re.search(r'DEBUG...True', responsebody):
@@ -79,6 +80,16 @@ def regexchecks(responsebody, url):
         alertname = " Alert:MEDIUM - Possible secret Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertMedset.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'(404 |not found|route)', responsebody, re.IGNORECASE):
+        if re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE):
+            regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE)
+            #print(regresult.group(0).strip())
+            if regresult.group(0).strip()[:-1] in url:
+                alertname = ""
+            else:
+                alertname = " Alert:MEDIUM - Possible backend API route" + "\r\n"
+                dualprint(Fore.RED + alertname)
+                alertMedset.add(str(url.rstrip('\n') + alertname))
     #if re.search(r'\S+@\S+', responsebody):
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
         piiList = piiList + " email |"
@@ -166,8 +177,10 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
                 dualprint(str(gzip.decompress(responsebody)[:300]))
                 regexchecks(gzip.decompress(responsebody), url)
             except:
-                dualprint(str(e.read(300).decode("utf8", 'ignore')))
-                regexchecks(e.read(), url)
+                responsebody = str(e.read(9999).decode("utf8", 'ignore'))
+                dualprint(str(responsebody))
+                regexchecks(responsebody, url)
+                regexchecks(str(e.reason), url)
             #regex results to check for some particular frameworks in debug mode
             #if re.search(r'DEBUG...True', responsebody):
             #    dualprint(Fore.RED + " Possible Django Debug Page Found")
