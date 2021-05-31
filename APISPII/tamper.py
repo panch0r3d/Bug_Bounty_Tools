@@ -72,7 +72,7 @@ def regexchecks(responsebody, url):
         alertname = " Alert:LOW - Possible JBOSS Error Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
-    if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89-c39f-465a-b278-fxx0xx046723","").replace("hapikey=1xx39x89-c39f-465a-b278-fxx0xx046723","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723","")):
+    if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89-c39f-465a-b278-fxx0xx046723","").replace("hapikey=1xx39x89-c39f-465a-b278-fxx0xx046723","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
@@ -87,9 +87,10 @@ def regexchecks(responsebody, url):
             if regresult.group(0).strip()[:-1] in url:
                 alertname = ""
             else:
-                alertname = " Alert:MEDIUM - Possible backend API route" + "\r\n"
-                dualprint(Fore.RED + alertname)
-                alertMedset.add(str(url.rstrip('\n') + alertname))
+                if len(responsebody) <= 1000:
+                    alertname = " Alert:MEDIUM - Possible backend API route" + "\r\n"
+                    dualprint(Fore.RED + alertname)
+                    alertMedset.add(str(url.rstrip('\n') + alertname))
     #if re.search(r'\S+@\S+', responsebody):
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
         piiList = piiList + " email |"
@@ -99,7 +100,7 @@ def regexchecks(responsebody, url):
     #if re.search(r"www\.linkedin\.com%2Fin%2F([^-]+)-", responsebody, re.IGNORECASE):
     #    piiList = piiList + " social media |"
     # need to add phone number
-    if re.search(r"(\d{3}[-\.\s]\d{3}[-\.\s]\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]\d{4}|\d{3}[-\.\s]\d{4})", responsebody, re.IGNORECASE):
+    if re.search(r"(phone|phonenum|phone.num)(=| |:|\")+(\d{3}[-\.\s]\d{3}[-\.\s]\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]\d{4}|\d{3}[-\.\s]\d{4})", responsebody, re.IGNORECASE):
         piiList = piiList + " phone number |"
     # need to add credit card
     if re.search(r"(=| |:|\")+(?:[0-9]{4}-){3}[0-9]{4}|[0-9]{16}(=| |:|\")+", responsebody, re.IGNORECASE):
@@ -177,8 +178,8 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
                 dualprint(str(gzip.decompress(responsebody)[:300]))
                 regexchecks(gzip.decompress(responsebody), url)
             except:
-                responsebody = str(e.read(9999).decode("utf8", 'ignore'))
-                dualprint(str(responsebody))
+                responsebody = str(e.read().decode("utf8", 'ignore'))
+                dualprint(str(responsebody)[:300])
                 regexchecks(responsebody, url)
                 regexchecks(str(e.reason), url)
             #regex results to check for some particular frameworks in debug mode
