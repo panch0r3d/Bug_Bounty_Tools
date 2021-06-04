@@ -31,6 +31,7 @@ alertLowset = set()
 checkedlist = set()
 foundpaths = set()
 foundsecrets = set()
+foundhash = set()
 
 try:
     fileoutput = sys.argv[5]
@@ -76,8 +77,14 @@ def regexchecks(responsebody, url):
         alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
-        dualprint(Fore.RED + alertname)
-        alertHighset.add(str(url.rstrip('\n') + alertname))
+        regresult = re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
+        regexsecret = regresult.group(0)
+        if regexsecret in foundsecrets:
+            foundsecrets.add(regexsecret)
+        else:
+            dualprint(Fore.RED + alertname)
+            foundsecrets.add(regexsecret)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(secret|_key|token)(=| |:|\")+', responsebody, re.IGNORECASE):
         alertname = " Alert:MEDIUM - Possible secret Found" + "\r\n"
         regresult = re.search(r'(secret|_key|token)(=| |:|\")+\S+(=| |:|\")+', responsebody, re.IGNORECASE)
@@ -88,8 +95,8 @@ def regexchecks(responsebody, url):
             dualprint(Fore.RED + alertname)
             foundsecrets.add(regexsecret)
             alertMedset.add(str(url.rstrip('\n') + alertname))
-            print(regexsecret)
-    if re.search(r'(404 |not found|route)', responsebody, re.IGNORECASE):
+            dualprint(regexsecret)
+    if re.search(r'(404 |not found|route|No \S+ resource \S+ found)', responsebody, re.IGNORECASE):
         if re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE):
             regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE)
             #print(regresult.group(0).strip())
