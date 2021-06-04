@@ -29,6 +29,8 @@ alertHighset = set()
 alertMedset = set()
 alertLowset = set()
 checkedlist = set()
+foundpaths = set()
+foundsecrets = set()
 
 try:
     fileoutput = sys.argv[5]
@@ -72,25 +74,36 @@ def regexchecks(responsebody, url):
         alertname = " Alert:LOW - Possible JBOSS Error Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
-    if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89-c39f-465a-b278-fxx0xx046723","").replace("hapikey=1xx39x89-c39f-465a-b278-fxx0xx046723","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
+    if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(secret|_key|token)(=| |:|\")+', responsebody, re.IGNORECASE):
         alertname = " Alert:MEDIUM - Possible secret Found" + "\r\n"
-        dualprint(Fore.RED + alertname)
-        alertMedset.add(str(url.rstrip('\n') + alertname))
+        regresult = re.search(r'(secret|_key|token)(=| |:|\")+\S+(=| |:|\")+', responsebody, re.IGNORECASE)
+        regexsecret = regresult.group(0)
+        if regexsecret in foundsecrets:
+            foundsecrets.add(regexsecret)
+        else:
+            dualprint(Fore.RED + alertname)
+            foundsecrets.add(regexsecret)
+            alertMedset.add(str(url.rstrip('\n') + alertname))
+            print(regexsecret)
     if re.search(r'(404 |not found|route)', responsebody, re.IGNORECASE):
         if re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE):
             regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE)
             #print(regresult.group(0).strip())
-            if regresult.group(0).strip()[:-1] in url:
+            if regresult.group(0).strip().replace("\"","").replace(":","").replace("=","")[:-1] in url:
                 alertname = ""
             else:
                 if len(responsebody) <= 1000:
                     alertname = " Alert:MEDIUM - Possible backend API route" + "\r\n"
-                    dualprint(Fore.RED + alertname)
-                    alertMedset.add(str(url.rstrip('\n') + alertname))
+                    if regresult.group(0) in foundpaths:
+                        foundpaths.add(regresult.group(0))
+                    else:
+                        dualprint(Fore.RED + alertname)
+                        alertMedset.add(str(url.rstrip('\n') + alertname))
+                        foundpaths.add(regresult.group(0))
     #if re.search(r'\S+@\S+', responsebody):
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
         piiList = piiList + " email |"
@@ -103,7 +116,7 @@ def regexchecks(responsebody, url):
     if re.search(r"(phone|phonenum|phone.num)(=| |:|\")+(\d{3}[-\.\s]\d{3}[-\.\s]\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]\d{4}|\d{3}[-\.\s]\d{4})", responsebody, re.IGNORECASE):
         piiList = piiList + " phone number |"
     # need to add credit card
-    if re.search(r"(=| |:|\")+(?:[0-9]{4}-){3}[0-9]{4}|[0-9]{16}(=| |:|\")+", responsebody, re.IGNORECASE):
+    if re.search(r"(card|cc|credit|visa)(=| |:|\")+(?:[0-9]{4}-){3}[0-9]{4}|[0-9]{16}(=| |:|\")+", responsebody, re.IGNORECASE):
         piiList = piiList + " credit card |"
     # need to add hash
     if re.search(r"(\"|\s|:|$)+([a-f0-9]{32})", responsebody, re.IGNORECASE):
@@ -175,11 +188,11 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
             dualprint(Fore.RED + str("HTTP Status: " + str(e.reason)))
             responsebody = str(e)
             try:
-                dualprint(str(gzip.decompress(responsebody)[:300]))
+                dualprint(str(Fore.WHITE + gzip.decompress(responsebody)[:300]))
                 regexchecks(gzip.decompress(responsebody), url)
             except:
                 responsebody = str(e.read().decode("utf8", 'ignore'))
-                dualprint(str(responsebody)[:300])
+                dualprint(Fore.WHITE + str(responsebody)[:300])
                 regexchecks(responsebody, url)
                 regexchecks(str(e.reason), url)
             #regex results to check for some particular frameworks in debug mode
@@ -419,7 +432,7 @@ def badstrings(url):
     "*","%2e%2e%2f%23","%23","%3Fcanary%3Dx%26",
     ".json",".xml","../","%0d%0a","////////../../../etc/passwd",
     "1\'%20OR%20\'1\'=\'1","%3Fhapikey%3D1xx39x89-c39f-465a-b278-fxx0xx046723%3D",
-    "%3Fapikey%3Dx278fxx0xx046723%3D","NULL","%C9"
+    "%3Fapikey%3Dx278fxx0xx046723%3D","NULL","%C9","%252e%252e%252f"
     ]
     for badstring in bad_strings:
         urlbase = urlparse(url).scheme + "://" +  urlparse(url).netloc
@@ -468,6 +481,10 @@ def testparams(url):
             newurl = url + connector + params + "x"
             testurl(newurl, 1)
             time.sleep(sleepamt)
+        for params in currparams:
+            newurl = url.replace(params,params.replace("=","=../"))
+            testurl(newurl, 1)
+            time.sleep(sleepamt)
     dualprint(Fore.WHITE)
 
 url = sys.argv[1]
@@ -483,7 +500,7 @@ def testheaders(url):
     dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
     dualprint("Testing HTTP Headers")
     dualprint("")
-    test_headers = ["X-Forward-Proto","X-Original-URL","X-Custom-IP-Authorization"
+    test_headers = ["X-Forward-Proto","X-Original-URL","X-Custom-IP-Authorization","token"
     ]
     #Check for responses with some intersting headers
     try:
@@ -513,6 +530,8 @@ def testheaders(url):
                 print(newurl)
             if (test == "X-Custom-IP-Authorization"):
                 test_value = "127.0.0.1"
+            if (test == "token"):
+                test_value = "NULL"
             rqobj = urlreq.Request(newurl, None)
             rqobj.add_header(test, test_value)
             dualprint(Fore.GREEN + str("Trying " + test + " with " + test_value + " "))
@@ -642,3 +661,9 @@ print("")
 print(Fore.GREEN + "Low Priority Alerts:")
 print(Fore.WHITE + "")
 print(*alertLowset)
+print(Fore.GREEN + "Found secrets:")
+print(Fore.WHITE + "")
+print(*foundsecrets)
+print(Fore.GREEN + "Found path traversals:")
+print(Fore.WHITE + "")
+print(*foundpaths)
