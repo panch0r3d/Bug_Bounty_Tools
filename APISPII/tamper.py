@@ -111,6 +111,7 @@ def regexchecks(responsebody, url):
                         dualprint(Fore.RED + alertname)
                         alertMedset.add(str(url.rstrip('\n') + alertname))
                         foundpaths.add(regresult.group(0))
+                        dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace("=","")[:-1])
     #if re.search(r'\S+@\S+', responsebody):
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
         piiList = piiList + " email |"
@@ -123,7 +124,8 @@ def regexchecks(responsebody, url):
     if re.search(r"(phone|phonenum|phone.num)(=| |:|\")+(\d{3}[-\.\s]\d{3}[-\.\s]\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]\d{4}|\d{3}[-\.\s]\d{4})", responsebody, re.IGNORECASE):
         piiList = piiList + " phone number |"
     # need to add credit card
-    if re.search(r"(card|cc|credit|visa)(=| |:|\")+(?:[0-9]{4}-){3}[0-9]{4}|[0-9]{16}(=| |:|\")+", responsebody, re.IGNORECASE):
+    #if re.search(r"(card|cc|credit|visa)(=| |:|\")+(?:[0-9]{4}-){3}[0-9]{4}|[0-9]{16}(=| |:|\")+", responsebody, re.IGNORECASE):
+    if re.search(r"(card|cc|credit|visa)(=| |:|\")+[0-9]{4}(-| |)[0-9]{4}(-| |)[0-9]{4}(-| |)[0-9]{4}(-| |)(=| |:|\")+", responsebody, re.IGNORECASE):
         piiList = piiList + " credit card |"
     # need to add hash
     if re.search(r"(\"|\s|:|$)+([a-f0-9]{32})", responsebody, re.IGNORECASE):
