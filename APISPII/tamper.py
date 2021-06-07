@@ -509,7 +509,8 @@ def testheaders(url):
     dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
     dualprint("Testing HTTP Headers")
     dualprint("")
-    test_headers = ["X-Forward-Proto","X-Original-URL","X-Custom-IP-Authorization","token","Max-Forwards0","Max-Forwards1","Max-Forwards2"
+    test_headers = ["X-Forwarded-Proto","X-Original-URL","X-Custom-IP-Authorization","token",
+    "X-Forwarded-Port","Max-Forwards0","Max-Forwards1","Max-Forwards2"
     ]
     #Check for responses with some intersting headers
     try:
@@ -528,7 +529,7 @@ def testheaders(url):
             #logic to determine header value
             parsed = urlparse(url)
             newurl = url
-            if (test == "X-Forward-Proto"):
+            if (test == "X-Forwarded-Proto"):
                 if (parsed.scheme == "https"):
                     test_value = "http"
                 else:
@@ -539,6 +540,8 @@ def testheaders(url):
                 print(newurl)
             if (test == "X-Custom-IP-Authorization"):
                 test_value = "127.0.0.1"
+            if (test == "X-Forwarded-Port"):
+                test_value = "80"
             if (test == "token"):
                 test_value = "NULL"
             if (test == "Max-Forwards0"):
