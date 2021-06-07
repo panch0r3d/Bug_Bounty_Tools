@@ -509,7 +509,7 @@ def testheaders(url):
     dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
     dualprint("Testing HTTP Headers")
     dualprint("")
-    test_headers = ["X-Forward-Proto","X-Original-URL","X-Custom-IP-Authorization","token","Max-Forwards"
+    test_headers = ["X-Forward-Proto","X-Original-URL","X-Custom-IP-Authorization","token","Max-Forwards0","Max-Forwards1","Max-Forwards2"
     ]
     #Check for responses with some intersting headers
     try:
@@ -541,8 +541,15 @@ def testheaders(url):
                 test_value = "127.0.0.1"
             if (test == "token"):
                 test_value = "NULL"
-            if (test == "Max-Forwards"):
+            if (test == "Max-Forwards0"):
+                test_value = "0"
+                test = "Max-Forwards"
+            if (test == "Max-Forwards1"):
                 test_value = "1"
+                test = "Max-Forwards"
+            if (test == "Max-Forwards2"):
+                test_value = "2"
+                test = "Max-Forwards"
             rqobj = urlreq.Request(newurl, None)
             rqobj.add_header(test, test_value)
             dualprint(Fore.GREEN + str("Trying " + test + " with " + test_value + " "))
