@@ -32,6 +32,7 @@ checkedlist = set()
 foundpaths = set()
 foundsecrets = set()
 foundhash = set()
+foundemails = set()
 
 try:
     fileoutput = sys.argv[5]
@@ -100,21 +101,28 @@ def regexchecks(responsebody, url):
         if re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE):
             regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE)
             #print(regresult.group(0).strip())
-            if regresult.group(0).strip().replace("\"","").replace(":","").replace("=","")[:-1] in url:
+            if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1] in url:
                 alertname = ""
             else:
                 if len(responsebody) <= 1000:
                     alertname = " Alert:MEDIUM - Possible backend API route" + "\r\n"
-                    if regresult.group(0) in foundpaths:
+                    if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1] in foundpaths:
                         foundpaths.add(regresult.group(0))
                     else:
                         dualprint(Fore.RED + alertname)
                         alertMedset.add(str(url.rstrip('\n') + alertname))
                         foundpaths.add(regresult.group(0))
-                        dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace("=","")[:-1])
+                        dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1])
     #if re.search(r'\S+@\S+', responsebody):
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
         piiList = piiList + " email |"
+        regresult = re.findall('([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody)
+        print(Fore.RED)
+        for email in regresult:
+            dualprint(email)
+            #dualprint(*regresult)
+            #dualprint(regresult.group(0))
+            foundemails.add(email)
     if re.search('(lastname|firstname|first.name|last.name)', responsebody, re.IGNORECASE):
         piiList = piiList + " name |"
     # need to add social media links
@@ -510,7 +518,7 @@ def testheaders(url):
     dualprint("Testing HTTP Headers")
     dualprint("")
     test_headers = ["X-Forwarded-Proto","X-Original-URL","X-Custom-IP-Authorization","token",
-    "X-Forwarded-Port","Max-Forwards0","Max-Forwards1","Max-Forwards2"
+    "X-Forwarded-Port","Max-Forwards0","Max-Forwards1","Max-Forwards2","Content-Type"
     ]
     #Check for responses with some intersting headers
     try:
@@ -553,6 +561,8 @@ def testheaders(url):
             if (test == "Max-Forwards2"):
                 test_value = "2"
                 test = "Max-Forwards"
+            if (test == "Content-Type"):
+                test_value = "multipart/*"
             rqobj = urlreq.Request(newurl, None)
             rqobj.add_header(test, test_value)
             dualprint(Fore.GREEN + str("Trying " + test + " with " + test_value + " "))
@@ -688,3 +698,6 @@ print(*foundsecrets)
 print(Fore.GREEN + "Found path traversals:")
 print(Fore.WHITE + "")
 print(*foundpaths)
+print(Fore.GREEN + "Found emails:")
+print(Fore.WHITE + "")
+print(*foundemails)
