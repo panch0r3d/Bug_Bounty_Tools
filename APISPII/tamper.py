@@ -33,6 +33,7 @@ foundpaths = set()
 foundsecrets = set()
 foundhash = set()
 foundemails = set()
+foundlrgdata = set()
 
 try:
     fileoutput = sys.argv[5]
@@ -72,18 +73,35 @@ def regexchecks(responsebody, url):
         alertname = " Alert:HIGH - Possible Ruby Debug Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'Index Of', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Directory Listing" + "\r\n"
+        if re.search(r'parent dir', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+    if len(responsebody) > respsize and len(responsebody) > 300000:
+        if "doctype html" in responsebody[:50]:
+            alertname = " Alert:HIGH - Large amount of non html data returned" + "\r\n"
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+            foundlrgdata.add(str(url.rstrip('\n')))
+        else:
+            alertname = " Alert:MEDIUM - Large amount of data returned" + "\r\n"
+            dualprint(Fore.RED + alertname)
+            alertMedset.add(str(url.rstrip('\n') + alertname))
+            foundlrgdata.add(str(url.rstrip('\n')))
     if re.search(r'JBWEB0000', responsebody):
         alertname = " Alert:LOW - Possible JBOSS Error Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
-        regresult = re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
+        regresult = re.search(r'apikey(=| |:|\")+\S+(=| |:|\")+', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
         regexsecret = regresult.group(0)
         if regexsecret in foundsecrets:
             foundsecrets.add(regexsecret)
         else:
             dualprint(Fore.RED + alertname)
+            dualprint(regexsecret)
             foundsecrets.add(regexsecret)
             alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(secret|_key|token)(=| |:|\")+', responsebody, re.IGNORECASE):
@@ -97,9 +115,10 @@ def regexchecks(responsebody, url):
             foundsecrets.add(regexsecret)
             alertMedset.add(str(url.rstrip('\n') + alertname))
             dualprint(regexsecret)
-    if re.search(r'(404 |not found|route|No \S+ resource \S+ found)', responsebody, re.IGNORECASE):
-        if re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE):
-            regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\")+', responsebody, re.IGNORECASE)
+    if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|Cannot(=| |:|\")+Get)', responsebody, re.IGNORECASE):
+        #print("Match Not Found")
+        if re.search(r'(=| |:|\")+[/]\S+(=| |:|\"|<)+', responsebody, re.IGNORECASE):
+            regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\"|<)+', responsebody, re.IGNORECASE)
             #print(regresult.group(0).strip())
             if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1] in url:
                 alertname = ""
@@ -118,8 +137,11 @@ def regexchecks(responsebody, url):
         piiList = piiList + " email |"
         regresult = re.findall('([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody)
         print(Fore.RED)
+        emailcounter = 0
         for email in regresult:
-            dualprint(email)
+            if (emailcounter < 5):
+               dualprint(email)
+            emailcounter = emailcounter + 1
             #dualprint(*regresult)
             #dualprint(regresult.group(0))
             foundemails.add(email)
@@ -136,8 +158,8 @@ def regexchecks(responsebody, url):
     if re.search(r"(card|cc|credit|visa)(=| |:|\")+[0-9]{4}(-| |)[0-9]{4}(-| |)[0-9]{4}(-| |)[0-9]{4}(-| |)(=| |:|\")+", responsebody, re.IGNORECASE):
         piiList = piiList + " credit card |"
     # need to add hash
-    if re.search(r"(\"|\s|:|$)+([a-f0-9]{32})", responsebody, re.IGNORECASE):
-        piiList = piiList + " hash |"
+    #if re.search(r"(\"|\s|:|$)+([a-f0-9]{32})", responsebody, re.IGNORECASE):
+    #    piiList = piiList + " hash |"
     if (piiList != ""):
         alertname = str(" Alert:LOW - Possible PII ( |" + piiList + ") Found" + "\r\n")
         dualprint(Fore.RED + alertname)
@@ -518,7 +540,8 @@ def testheaders(url):
     dualprint("Testing HTTP Headers")
     dualprint("")
     test_headers = ["X-Forwarded-Proto","X-Original-URL","X-Custom-IP-Authorization","token",
-    "X-Forwarded-Port","Max-Forwards0","Max-Forwards1","Max-Forwards2","Content-Type"
+    "X-Forwarded-Port","Max-Forwards0","Max-Forwards1","Max-Forwards2","Content-Type",
+    "Referrer","Accept","User-Agent"
     ]
     #Check for responses with some intersting headers
     try:
@@ -563,6 +586,12 @@ def testheaders(url):
                 test = "Max-Forwards"
             if (test == "Content-Type"):
                 test_value = "multipart/*"
+            if (test == "Referrer"):
+                test_value = "\"" + url + "\""
+            if (test == "Accept"):
+                test_value = "multipart/*"
+            if (test == "User-Agent"):
+                test_value = "okhttp/4.1.1"
             rqobj = urlreq.Request(newurl, None)
             rqobj.add_header(test, test_value)
             dualprint(Fore.GREEN + str("Trying " + test + " with " + test_value + " "))
@@ -701,3 +730,6 @@ print(*foundpaths)
 print(Fore.GREEN + "Found emails:")
 print(Fore.WHITE + "")
 print(*foundemails)
+print(Fore.GREEN + "Found large data:")
+print(Fore.WHITE + "")
+print(*foundlrgdata)
