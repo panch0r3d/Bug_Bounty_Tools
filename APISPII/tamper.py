@@ -34,6 +34,8 @@ foundsecrets = set()
 foundhash = set()
 foundemails = set()
 foundlrgdata = set()
+founddebug = set()
+foundparsing = set()
 
 try:
     fileoutput = sys.argv[5]
@@ -65,37 +67,57 @@ def regexchecks(responsebody, url):
         alertname = " Alert:HIGH - Possible Django Debug Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
+        founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'Whoops..There was an error', responsebody):
         alertname = " Alert:HIGH - Possible Laravel Debug Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
+        founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'Action Controller..Exception caught', responsebody):
         alertname = " Alert:HIGH - Possible Ruby Debug Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
+        founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'Index Of', responsebody, re.IGNORECASE):
         alertname = " Alert:HIGH - Directory Listing" + "\r\n"
         if re.search(r'parent dir', responsebody, re.IGNORECASE):
             dualprint(Fore.RED + alertname)
             alertHighset.add(str(url.rstrip('\n') + alertname))
-    if len(responsebody) > respsize and len(responsebody) > 300000:
-        if "doctype html" in responsebody[:50]:
-            alertname = " Alert:HIGH - Large amount of non html data returned" + "\r\n"
-            dualprint(Fore.RED + alertname)
-            alertHighset.add(str(url.rstrip('\n') + alertname))
-            foundlrgdata.add(str(url.rstrip('\n')))
+    if re.search(r'error', responsebody, re.IGNORECASE):
+        alertname = " Alert:LOW - Error debug page" + "\r\n"
+        if re.search(r'runtime', responsebody, re.IGNORECASE):
+            if re.search(r'server', responsebody, re.IGNORECASE):
+                dualprint(Fore.RED + alertname)
+                alertLowset.add(str(url.rstrip('\n') + alertname))
+                founddebug.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'(error|serialize|parse|parsing|validat)', responsebody, re.IGNORECASE):
+        if re.search(r'(404)', responsebody, re.IGNORECASE):
+            alertname = ""
         else:
+            alertname = " Alert:MEDIUM - Server side parsing error" + "\r\n"
+            if re.search(r'( json|java)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 3000:
+                dualprint(Fore.RED + alertname)
+                alertMedset.add(str(url.rstrip('\n') + alertname))
+                foundparsing.add(str(url.rstrip('\n') + alertname))
+    if len(responsebody) > respsize and len(responsebody) > 300000:
+        if re.search(r'doctype html', responsebody[:50], re.IGNORECASE):
             alertname = " Alert:MEDIUM - Large amount of data returned" + "\r\n"
             dualprint(Fore.RED + alertname)
             alertMedset.add(str(url.rstrip('\n') + alertname))
+            foundlrgdata.add(str(url.rstrip('\n')))
+        else:
+            alertname = " Alert:HIGH - Large amount of non html data returned" + "\r\n"
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
             foundlrgdata.add(str(url.rstrip('\n')))
     if re.search(r'JBWEB0000', responsebody):
         alertname = " Alert:LOW - Possible JBOSS Error Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
-    if re.search(r'apikey', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
+        founddebug.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'(apikey|api.key)', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
-        regresult = re.search(r'apikey(=| |:|\")+\S+(=| |:|\")+', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
+        regresult = re.search(r'(apikey|api.key)(=| |:|\")+\S+(=| |:|\")+', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
         regexsecret = regresult.group(0)
         if regexsecret in foundsecrets:
             foundsecrets.add(regexsecret)
@@ -104,7 +126,7 @@ def regexchecks(responsebody, url):
             dualprint(regexsecret)
             foundsecrets.add(regexsecret)
             alertHighset.add(str(url.rstrip('\n') + alertname))
-    if re.search(r'(secret|_key|token)(=| |:|\")+', responsebody, re.IGNORECASE):
+    if re.search(r'(secret|_key|token)(=| |:|\")+', responsebody.replace("api_key","").replace("csrf_token","").replace("csrf-token","").replace("xsrf_token","").replace("xsrf-token","").replace("csrftoken","").replace("xsrftoken",""), re.IGNORECASE):
         alertname = " Alert:MEDIUM - Possible secret Found" + "\r\n"
         regresult = re.search(r'(secret|_key|token)(=| |:|\")+\S+(=| |:|\")+', responsebody, re.IGNORECASE)
         regexsecret = regresult.group(0)
@@ -115,36 +137,40 @@ def regexchecks(responsebody, url):
             foundsecrets.add(regexsecret)
             alertMedset.add(str(url.rstrip('\n') + alertname))
             dualprint(regexsecret)
-    if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|Cannot(=| |:|\")+Get)', responsebody, re.IGNORECASE):
+    if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|InvalidURI|Cannot(=| |:|\")+Get)', responsebody, re.IGNORECASE):
         #print("Match Not Found")
         if re.search(r'(=| |:|\")+[/]\S+(=| |:|\"|<)+', responsebody, re.IGNORECASE):
             regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\"|<)+', responsebody, re.IGNORECASE)
             #print(regresult.group(0).strip())
-            if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1] in url:
+            if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","").replace("%22","").replace("%7C","").replace("%25","").replace("%5C","")[:-1] in url:
                 alertname = ""
             else:
                 if len(responsebody) <= 1000:
                     alertname = " Alert:MEDIUM - Possible backend API route" + "\r\n"
-                    if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1] in foundpaths:
+                    if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","").replace("%22","").replace("%7C","").replace("%25","").replace("%5C","")[:-1] in foundpaths:
                         foundpaths.add(regresult.group(0))
                     else:
                         dualprint(Fore.RED + alertname)
                         alertMedset.add(str(url.rstrip('\n') + alertname))
                         foundpaths.add(regresult.group(0))
-                        dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","")[:-1])
+                        dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","")[:-1])
     #if re.search(r'\S+@\S+', responsebody):
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
-        piiList = piiList + " email |"
         regresult = re.findall('([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody)
         print(Fore.RED)
         emailcounter = 0
         for email in regresult:
-            if (emailcounter < 5):
-               dualprint(email)
-            emailcounter = emailcounter + 1
-            #dualprint(*regresult)
-            #dualprint(regresult.group(0))
-            foundemails.add(email)
+            if re.search('(\.png|\.jpg|\.jpeg|\.ico)', email, re.IGNORECASE):
+                email = ""
+            else:
+                if "email" not in piiList:
+                    piiList = piiList + " email |"
+                if (emailcounter < 5):
+                   dualprint(email)
+                emailcounter = emailcounter + 1
+                #dualprint(*regresult)
+                #dualprint(regresult.group(0))
+                foundemails.add(email)
     if re.search('(lastname|firstname|first.name|last.name)', responsebody, re.IGNORECASE):
         piiList = piiList + " name |"
     # need to add social media links
@@ -271,26 +297,26 @@ def testversion(url):
     ]
     regexresult = ""
     hasversioning = 0
-    if re.search(r'/v[0-9]/', url):
-        regexresult = re.search(r'/v[0-9]/', url)
+    if re.search(r'/v[0-9]/', url, re.IGNORECASE):
+        regexresult = re.search(r'/v[0-9]/', url, re.IGNORECASE)
         dualprint(Fore.BLUE + "")
         dualprint(str("Found versioning: " + regexresult.group(0)))
         hasversioning = 1
         dualprint(Fore.WHITE + "")
-    if re.search(r'/v/', url):
-        regexresult = re.search(r'/v/', url)
+    if re.search(r'/v/', url, re.IGNORECASE):
+        regexresult = re.search(r'/v/', url, re.IGNORECASE)
         dualprint(Fore.BLUE + "")
         dualprint(str("Found versioning: " + regexresult.group(0)))
         hasversioning = 1
         dualprint(Fore.WHITE + "")
-    if re.search(r'/v[0-9][.][0-9]+/', url):
-        regexresult = re.search(r'/v[0-9][.][0-9]+/', url)
+    if re.search(r'/v[0-9][.][0-9]+/', url, re.IGNORECASE):
+        regexresult = re.search(r'/v[0-9][.][0-9]+/', url, re.IGNORECASE)
         dualprint(Fore.BLUE + "")
         dualprint(str("Found versioning: " + regexresult.group(0)))
         hasversioning = 1
         dualprint(Fore.WHITE + "")
-    if re.search(r'/api-[0-9.]+/', url):
-        regexresult = re.search(r'/api[0-9_\-.]+/', url)
+    if re.search(r'/api-[0-9.]+/', url, re.IGNORECASE):
+        regexresult = re.search(r'/api[0-9_\-.]+/', url, re.IGNORECASE)
         dualprint(Fore.BLUE + "")
         dualprint(str("Found versioning: " + regexresult.group(0)))
         hasversioning = 1
@@ -466,7 +492,7 @@ def badstrings(url):
     dualprint("Testing some bad strings")
     bad_strings = [
     "test","\"","|","'",
-    "#","-","_","\\",
+    "#","-","@","%00",
     "&","..","%","???",
     "*","%2e%2e%2f%23","%23","%3Fcanary%3Dx%26",
     ".json",".xml","../","%0d%0a","////////../../../etc/passwd",
@@ -497,7 +523,8 @@ def testparams(url):
     dualprint("Testing query parameters")
     test_params = [
     "admin=true","test=1","environment=debug",
-    "environment=dev","debug=true","url=http%3A%2F%2Fwww.example.com"
+    "environment=dev","debug=1","url=http%3A%2F%2Fwww.example.com",
+    "abc=.js?"
     ]
     regexresult = ""
     if ("?" in url):
@@ -522,6 +549,10 @@ def testparams(url):
             time.sleep(sleepamt)
         for params in currparams:
             newurl = url.replace(params,params.replace("=","=../"))
+            testurl(newurl, 1)
+            time.sleep(sleepamt)
+        for params in currparams:
+            newurl = url.replace(params,params.replace("=","='--"))
             testurl(newurl, 1)
             time.sleep(sleepamt)
     dualprint(Fore.WHITE)
@@ -704,9 +735,9 @@ print("")
 print("")
 dualprint("------------------------------------------------------------------------------------------------")
 print("")
-print(Fore.RED + "High Priority Alerts:")
+print(Fore.GREEN + "Low Priority Alerts:")
 print(Fore.WHITE + "")
-print(*alertHighset)
+print(*alertLowset)
 print("")
 print("")
 dualprint("------------------------------------------------------------------------------------------------")
@@ -718,9 +749,12 @@ print("")
 print("")
 dualprint("------------------------------------------------------------------------------------------------")
 print("")
-print(Fore.GREEN + "Low Priority Alerts:")
+print(Fore.RED + "High Priority Alerts:")
 print(Fore.WHITE + "")
-print(*alertLowset)
+print(*alertHighset)
+print("")
+print("")
+dualprint("------------------------------------------------------------------------------------------------")
 print(Fore.GREEN + "Found secrets:")
 print(Fore.WHITE + "")
 print(*foundsecrets)
@@ -733,3 +767,9 @@ print(*foundemails)
 print(Fore.GREEN + "Found large data:")
 print(Fore.WHITE + "")
 print(*foundlrgdata)
+print(Fore.GREEN + "Found debug pages:")
+print(Fore.WHITE + "")
+print(*founddebug)
+print(Fore.GREEN + "Found parsing errors:")
+print(Fore.WHITE + "")
+print(*foundparsing)
