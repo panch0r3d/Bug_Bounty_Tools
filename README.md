@@ -17,3 +17,8 @@ Random tools I've made for bug bounty hunting
   all point to the same url]
 
 * vuln_files - My personal collection of files with hidden functionality used for testing file uploads
+
+* My personal suite of tools for fuzzing api endpoints. It logs api keys / tokens/ path traversals / debug pages etc
+
+* top hat - a tool i wrote to check for page changes when I add headers. Including length / response variations and reflected values in the response body. The usage is very similar to my APISPII tools.
+    usage - python3 top_hat.py "https://www.example.com/" header.txt .25 /tmp/wordlists/headers.txt "{{7*7}}" /tmp/outputfile.txt
