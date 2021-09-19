@@ -16,6 +16,7 @@ import socket
 from urllib.parse import urlparse
 from os import path
 from colorama import Fore, Back
+from datetime import date
 
 i = 0
 quiet = "false"
@@ -199,7 +200,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
                 rqobj.add_header(key, headerdict[key])
         if (addheader == 1):
             rqobj.add_header(testheader, headervalue)
-        result = urlreq.urlopen(rqobj, context=ctx, timeout=10)
+        result = urlreq.urlopen(rqobj, context=ctx, timeout=2)
         responsebody = result.read()
         if (baseline == 1):
             respsize = len(responsebody)
@@ -212,6 +213,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
         if (addheader == 1):
             dualprint("Header: " + testheader)
             dualprint("Value: " + headervalue)
+            dualprint("Timestamp: " + date.today())
         dualprint(Fore.GREEN + str("URL: " + url))
         dualprint(Fore.WHITE + str("HTTP Status: " + str(result.status)))
         dualprint("Response Size:" + str(len(responsebody)))
