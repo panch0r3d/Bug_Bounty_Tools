@@ -200,7 +200,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
                 rqobj.add_header(key, headerdict[key])
         if (addheader == 1):
             rqobj.add_header(testheader, headervalue)
-        result = urlreq.urlopen(rqobj, context=ctx, timeout=2)
+        result = urlreq.urlopen(rqobj, context=ctx, timeout=5)
         responsebody = result.read()
         if (baseline == 1):
             respsize = len(responsebody)
@@ -213,7 +213,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
         if (addheader == 1):
             dualprint("Header: " + testheader)
             dualprint("Value: " + headervalue)
-            dualprint("Timestamp: " + date.today())
+            dualprint("Timestamp: " + str(date.today()))
         dualprint(Fore.GREEN + str("URL: " + url))
         dualprint(Fore.WHITE + str("HTTP Status: " + str(result.status)))
         dualprint("Response Size:" + str(len(responsebody)))
@@ -244,6 +244,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
         if (addheader == 1):
             dualprint("Header: " + testheader)
             dualprint("Value: " + headervalue)
+            dualprint("Timestamp: " + str(date.today()))
         dualprint(Fore.GREEN + "URL: " + url)
         try:
             dualprint(Fore.RED + str("HTTP Status: " + str(e.reason)))
