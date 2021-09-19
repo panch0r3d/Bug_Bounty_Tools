@@ -13,10 +13,10 @@ import requests
 import codecs
 import ssl
 import socket
+import datetime
 from urllib.parse import urlparse
 from os import path
 from colorama import Fore, Back
-from datetime import date
 
 i = 0
 quiet = "false"
@@ -213,7 +213,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
         if (addheader == 1):
             dualprint("Header: " + testheader)
             dualprint("Value: " + headervalue)
-            dualprint("Timestamp: " + str(date.today()))
+            dualprint("Timestamp: " + str(datetime.date.today()) + " " + str(datetime.datetime.now()))
         dualprint(Fore.GREEN + str("URL: " + url))
         dualprint(Fore.WHITE + str("HTTP Status: " + str(result.status)))
         dualprint("Response Size:" + str(len(responsebody)))
@@ -244,7 +244,7 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0, addheader=0):
         if (addheader == 1):
             dualprint("Header: " + testheader)
             dualprint("Value: " + headervalue)
-            dualprint("Timestamp: " + str(date.today()))
+            dualprint("Timestamp: " + str(datetime.date.today()) + " " + str(datetime.datetime.now()))
         dualprint(Fore.GREEN + "URL: " + url)
         try:
             dualprint(Fore.RED + str("HTTP Status: " + str(e.reason)))
