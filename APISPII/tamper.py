@@ -83,6 +83,20 @@ def regexchecks(responsebody, url):
         if re.search(r'parent dir', responsebody, re.IGNORECASE):
             dualprint(Fore.RED + alertname)
             alertHighset.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'Directory Of', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Directory Listing" + "\r\n"
+        if re.search(r'parent dir', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'ListBucketResult', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Directory Listing" + "\r\n"
+        if re.search(r'amazonaws', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'This domain is for use in illustrative examples in documents', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Open Redirect or SSRF" + "\r\n"
+        dualprint(Fore.RED + alertname)
+        alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'error', responsebody, re.IGNORECASE):
         alertname = " Alert:LOW - Error debug page" + "\r\n"
         if re.search(r'runtime', responsebody, re.IGNORECASE):
@@ -99,6 +113,20 @@ def regexchecks(responsebody, url):
                 dualprint(Fore.RED + alertname)
                 alertMedset.add(str(url.rstrip('\n') + alertname))
                 foundparsing.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'(error|parse|parsing|validat)', responsebody, re.IGNORECASE):
+        if re.search(r'(SQL )', responsebody, re.IGNORECASE):
+            alertname = " Alert:MEDIUM - Server side SQL error" + "\r\n"
+            #if re.search(r'( json|java)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 3000:
+            dualprint(Fore.RED + alertname)
+            alertMedset.add(str(url.rstrip('\n') + alertname))
+            foundparsing.add(str(url.rstrip('\n') + alertname))
+        else:
+            if re.search(r'(database|query)', responsebody, re.IGNORECASE):
+                alertname = " Alert:MEDIUM - Server side SQL error" + "\r\n"
+                if re.search(r'(MariaDB|inner join|left join|right join)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 3000:
+                    dualprint(Fore.RED + alertname)
+                    alertMedset.add(str(url.rstrip('\n') + alertname))
+                    foundparsing.add(str(url.rstrip('\n') + alertname))
     if len(responsebody) > respsize and len(responsebody) > 300000:
         if re.search(r'doctype html', responsebody[:50], re.IGNORECASE):
             alertname = " Alert:MEDIUM - Large amount of data returned" + "\r\n"
@@ -137,10 +165,19 @@ def regexchecks(responsebody, url):
             foundsecrets.add(regexsecret)
             alertMedset.add(str(url.rstrip('\n') + alertname))
             dualprint(regexsecret)
-    if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|InvalidURI|Cannot(=| |:|\")+Get)', responsebody, re.IGNORECASE):
+    routeresponsebody = responsebody.replace("\"","").replace(":","").replace("%C9","").replace("../","").replace("&amp","")
+    routeresponsebody = routeresponsebody.replace("%22","").replace("%7C","").replace("&quot","").replace("%5C","")
+    routeresponsebody = routeresponsebody.replace("/etc/passwd","").replace("1%20%20OR%20%201%20=%201","").replace("1&#39;%20OR%20&#39;1&#39;=&#39;1","")
+    routeresponsebody = routeresponsebody.replace("..%2f%23","").replace("/;","").replace("%252e%252e%252f","").replace("%2e%2e%2f","")
+    routeresponsebody = routeresponsebody.replace("?apikey=x278fxx0xx046723","").replace("?canary=x","").replace("?hapikey=1xx39x89-c39f-465a-b278-fxx0xx046723","")
+    routeresponsebody = routeresponsebody.replace("&#39","")
+    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/html4/loose.dtd","")
+    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/html4/strict.dtd","")
+    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd","")
+    if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|InvalidURI|Cannot(=| |:|\")+Get|Bad Request|ENOTDIR|ENOENT|key does not exist)', routeresponsebody, re.IGNORECASE):
         #print("Match Not Found")
-        if re.search(r'(=| |:|\")+[/]\S+(=| |:|\"|<)+', responsebody, re.IGNORECASE):
-            regresult = re.search(r'(=| |:|\")+[/]\S+(=| |:|\"|<)+', responsebody, re.IGNORECASE)
+        if re.search(r'(=| |:|;|\")+[/]\S+(=| |:|;|\"|<)+', routeresponsebody, re.IGNORECASE):
+            regresult = re.search(r'(=| |:|;|\")+[/]\S+(=| |:|;|\"|<)+', routeresponsebody, re.IGNORECASE)
             #print(regresult.group(0).strip())
             if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","").replace("%22","").replace("%7C","").replace("%25","").replace("%5C","")[:-1] in url:
                 alertname = ""
@@ -332,6 +369,9 @@ def testversion(url):
             newurl = url.replace(regexresult.group(0), "/" + version + "/")
             testurl(newurl, 1)
             time.sleep(sleepamt)
+        newurl = url.replace(regexresult.group(0), regexresult.group(0) + "internal/")
+        testurl(newurl, 1)
+        time.sleep(sleepamt)
     else:
         dualprint(Fore.RED + "No versioning identified")
         dualprint(Fore.WHITE)
@@ -491,13 +531,13 @@ def badstrings(url):
     dualprint(Fore.WHITE + "------------------------------------------------------------------------------------------------")
     dualprint("Testing some bad strings")
     bad_strings = [
-    "test","\"","|","'",
-    "#","-","@","%00",
+    "test","http%3A%2F%2Fwww.example.com","|","'",
+    "#","..;","..;/x","%00",
     "&","..","%","???",
     "*","%2e%2e%2f%23","%23","%3Fcanary%3Dx%26",
     ".json",".xml","../","%0d%0a","////////../../../etc/passwd",
     "1\'%20OR%20\'1\'=\'1","%3Fhapikey%3D1xx39x89-c39f-465a-b278-fxx0xx046723%3D",
-    "%3Fapikey%3Dx278fxx0xx046723%3D","NULL","%C9","%252e%252e%252f"
+    "%3Fapikey%3Dx278fxx0xx046723%3D","NULL","%C9","%252e%252e%252f",".git",".env"
     ]
     for badstring in bad_strings:
         urlbase = urlparse(url).scheme + "://" +  urlparse(url).netloc
@@ -523,7 +563,7 @@ def testparams(url):
     dualprint("Testing query parameters")
     test_params = [
     "admin=true","test=1","environment=debug",
-    "environment=dev","debug=1","url=http%3A%2F%2Fwww.example.com",
+    "environment=dev","debug=1",
     "abc=.js?"
     ]
     regexresult = ""
@@ -553,6 +593,10 @@ def testparams(url):
             time.sleep(sleepamt)
         for params in currparams:
             newurl = url.replace(params,params.replace("=","='--"))
+            testurl(newurl, 1)
+            time.sleep(sleepamt)
+        for params in currparams:
+            newurl = url.replace(params,params.replace("=","=http%3A%2F%2Fwww.example.com%3F"))
             testurl(newurl, 1)
             time.sleep(sleepamt)
     dualprint(Fore.WHITE)
@@ -767,9 +811,9 @@ print(*foundemails)
 print(Fore.GREEN + "Found large data:")
 print(Fore.WHITE + "")
 print(*foundlrgdata)
-print(Fore.GREEN + "Found debug pages:")
-print(Fore.WHITE + "")
-print(*founddebug)
-print(Fore.GREEN + "Found parsing errors:")
-print(Fore.WHITE + "")
-print(*foundparsing)
+#print(Fore.GREEN + "Found debug pages:")
+#print(Fore.WHITE + "")
+#print(*founddebug)
+#print(Fore.GREEN + "Found parsing errors:")
+#print(Fore.WHITE + "")
+#print(*foundparsing)
