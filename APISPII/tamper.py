@@ -97,13 +97,36 @@ def regexchecks(responsebody, url):
         alertname = " Alert:HIGH - Open Redirect or SSRF" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
+    #Default Apache root
+    if re.search(r'It Works', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Default Apache Tomcat Page" + "\r\n"
+        if re.search(r'tomcat', responsebody, re.IGNORECASE):
+            if (len(responsebody) >= 150):
+                dualprint(Fore.RED + alertname)
+                alertHighset.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'Apache Tomcat', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Default Apache Tomcat Page" + "\r\n"
+        if re.search(r'apache.org', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+    #JBOSS Default Page
+    if re.search(r'Your Red Hat JBoss Enterprise Application', responsebody):
+        alertname = " Alert:LOW - Default JBOSS Page" + "\r\n"
+        dualprint(Fore.RED + alertname)
+        alertHighset.add(str(url.rstrip('\n') + alertname))
+        founddebug.add(str(url.rstrip('\n') + alertname))
+    # the debug and parsing need tuning
     if re.search(r'error', responsebody, re.IGNORECASE):
         alertname = " Alert:LOW - Error debug page" + "\r\n"
         if re.search(r'runtime', responsebody, re.IGNORECASE):
             if re.search(r'server', responsebody, re.IGNORECASE):
-                dualprint(Fore.RED + alertname)
-                alertLowset.add(str(url.rstrip('\n') + alertname))
-                founddebug.add(str(url.rstrip('\n') + alertname))
+                if ((len(responsebody) >= 3400 and len(responsebody) <= 3500) or len(responsebody) == 1763):
+                    alertname = ""
+                    #this code above to remove default web.config error
+                else:
+                    dualprint(Fore.RED + alertname)
+                    alertLowset.add(str(url.rstrip('\n') + alertname))
+                    founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(error|serialize|parse|parsing|validat)', responsebody, re.IGNORECASE):
         if re.search(r'(404)', responsebody, re.IGNORECASE):
             alertname = ""
@@ -132,7 +155,7 @@ def regexchecks(responsebody, url):
             alertname = " Alert:MEDIUM - Large amount of data returned" + "\r\n"
             dualprint(Fore.RED + alertname)
             alertMedset.add(str(url.rstrip('\n') + alertname))
-            foundlrgdata.add(str(url.rstrip('\n')))
+            #foundlrgdata.add(str(url.rstrip('\n')))
         else:
             alertname = " Alert:HIGH - Large amount of non html data returned" + "\r\n"
             dualprint(Fore.RED + alertname)
@@ -165,15 +188,20 @@ def regexchecks(responsebody, url):
             foundsecrets.add(regexsecret)
             alertMedset.add(str(url.rstrip('\n') + alertname))
             dualprint(regexsecret)
-    routeresponsebody = responsebody.replace("\"","").replace(":","").replace("%C9","").replace("../","").replace("&amp","")
-    routeresponsebody = routeresponsebody.replace("%22","").replace("%7C","").replace("&quot","").replace("%5C","")
-    routeresponsebody = routeresponsebody.replace("/etc/passwd","").replace("1%20%20OR%20%201%20=%201","").replace("1&#39;%20OR%20&#39;1&#39;=&#39;1","")
-    routeresponsebody = routeresponsebody.replace("..%2f%23","").replace("/;","").replace("%252e%252e%252f","").replace("%2e%2e%2f","")
-    routeresponsebody = routeresponsebody.replace("?apikey=x278fxx0xx046723","").replace("?canary=x","").replace("?hapikey=1xx39x89-c39f-465a-b278-fxx0xx046723","")
-    routeresponsebody = routeresponsebody.replace("&#39","")
-    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/html4/loose.dtd","")
-    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/html4/strict.dtd","")
-    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd","")
+    routeresponsebody = responsebody.replace("\"","").replace(":","").replace("%C9"," ").replace("../"," ").replace("&amp"," ")
+    routeresponsebody = routeresponsebody.replace("%22"," ").replace("%7C"," ").replace("&quot"," ").replace("%5C"," ")
+    routeresponsebody = routeresponsebody.replace("/etc/passwd"," ").replace("1%20%20OR%20%201%20=%201"," ").replace("1&#39;%20OR%20&#39;1&#39;=&#39;1"," ")
+    routeresponsebody = routeresponsebody.replace("..%2f%23"," ").replace("/;"," ").replace("%252e%252e%252f"," ").replace("%2e%2e%2f"," ")
+    routeresponsebody = routeresponsebody.replace("?apikey=x278fxx0xx046723"," ").replace("?canary=x"," ").replace("?hapikey=1xx39x89-c39f-465a-b278-fxx0xx046723"," ")
+    routeresponsebody = routeresponsebody.replace("&#39"," ").replace("/waroot/system_arrow.gif"," ")
+    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/html4/loose.dtd"," ").replace("%23"," ")
+    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/html4/strict.dtd"," ")
+    routeresponsebody = routeresponsebody.replace("www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"," ")
+    routeresponsebody = routeresponsebody.replace("http//www.example.com"," ").replace("><span"," ")
+    routeresponsebody = routeresponsebody.replace("%3Fapikey%3Dx278fxx0xx046723%3D"," ").replace("%3Fapikey=x278fxx0xx046723="," ")
+    routeresponsebody = routeresponsebody.replace("%3D1xx39x89-c39f-465a-b278-fxx0xx046723%3D"," ").replace("..;/x"," ")
+    routeresponsebody = routeresponsebody.replace("%3Fhapikey=1xx39x89-c39f-465a-b278-fxx0xx046723="," ")
+    routeresponsebody = routeresponsebody.replace("</h1>"," ").replace("</HostId><"," ").replace("<"," <")
     if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|InvalidURI|Cannot(=| |:|\")+Get|Bad Request|ENOTDIR|ENOENT|key does not exist)', routeresponsebody, re.IGNORECASE):
         #print("Match Not Found")
         if re.search(r'(=| |:|;|\")+[/]\S+(=| |:|;|\"|<)+', routeresponsebody, re.IGNORECASE):
@@ -286,14 +314,17 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
         return (True, result.url)
     except urllib.error.URLError as e:
         dualprint(Fore.GREEN + "URL: " + url)
+        #dualprint("Response Size:" + str(len(responsebody)))
         try:
             dualprint(Fore.RED + str("HTTP Status: " + str(e.reason)))
             responsebody = str(e)
             try:
+                dualprint("Response Size:" + str(len(gzip.decompress(responsebody))))
                 dualprint(str(Fore.WHITE + gzip.decompress(responsebody)[:300]))
                 regexchecks(gzip.decompress(responsebody), url)
             except:
                 responsebody = str(e.read().decode("utf8", 'ignore'))
+                dualprint("Response Size:" + str(len(responsebody)))
                 dualprint(Fore.WHITE + str(responsebody)[:300])
                 regexchecks(responsebody, url)
                 regexchecks(str(e.reason), url)
@@ -811,9 +842,9 @@ print(*foundemails)
 print(Fore.GREEN + "Found large data:")
 print(Fore.WHITE + "")
 print(*foundlrgdata)
-#print(Fore.GREEN + "Found debug pages:")
-#print(Fore.WHITE + "")
-#print(*founddebug)
-#print(Fore.GREEN + "Found parsing errors:")
-#print(Fore.WHITE + "")
-#print(*foundparsing)
+print(Fore.GREEN + "Found debug pages:")
+print(Fore.WHITE + "")
+print(*founddebug)
+print(Fore.GREEN + "Found parsing errors:")
+print(Fore.WHITE + "")
+print(*foundparsing)
