@@ -115,6 +115,12 @@ def regexchecks(responsebody, url):
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
         founddebug.add(str(url.rstrip('\n') + alertname))
+    #IBM Websphere
+    if re.search(r'IBM HTTP Server', responsebody):
+        alertname = " Alert:LOW - Default IBM Websphere Page" + "\r\n"
+        if re.search(r'COPYRIGHT International Business Machines', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
     # the debug and parsing need tuning
     if re.search(r'error', responsebody, re.IGNORECASE):
         alertname = " Alert:LOW - Error debug page" + "\r\n"
@@ -133,6 +139,15 @@ def regexchecks(responsebody, url):
         else:
             alertname = " Alert:MEDIUM - Server side parsing error" + "\r\n"
             if re.search(r'( json|java)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 3000:
+                dualprint(Fore.RED + alertname)
+                alertMedset.add(str(url.rstrip('\n') + alertname))
+                foundparsing.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'(error|serialize|parse|parsing|validat|stacktrace|lucee)', responsebody, re.IGNORECASE):
+        if re.search(r'(404)', responsebody, re.IGNORECASE):
+            alertname = ""
+        else:
+            alertname = " Alert:MEDIUM - Server side parsing error" + "\r\n"
+            if re.search(r'(apache.tomcat|java.lang.Thread|apache.catalina)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 30000:
                 dualprint(Fore.RED + alertname)
                 alertMedset.add(str(url.rstrip('\n') + alertname))
                 foundparsing.add(str(url.rstrip('\n') + alertname))
@@ -201,7 +216,7 @@ def regexchecks(responsebody, url):
     routeresponsebody = routeresponsebody.replace("%3Fapikey%3Dx278fxx0xx046723%3D"," ").replace("%3Fapikey=x278fxx0xx046723="," ")
     routeresponsebody = routeresponsebody.replace("%3D1xx39x89-c39f-465a-b278-fxx0xx046723%3D"," ").replace("..;/x"," ")
     routeresponsebody = routeresponsebody.replace("%3Fhapikey=1xx39x89-c39f-465a-b278-fxx0xx046723="," ")
-    routeresponsebody = routeresponsebody.replace("</h1>"," ").replace("</HostId><"," ").replace("<"," <")
+    routeresponsebody = routeresponsebody.replace("</h1>"," ").replace("</HostId><"," ").replace("<"," <").replace("/>"," ")
     if re.search(r'(404 |not found|route|No \S+ resource \S+ found|Problem accessing|InvalidURI|Cannot(=| |:|\")+Get|Bad Request|ENOTDIR|ENOENT|key does not exist)', routeresponsebody, re.IGNORECASE):
         #print("Match Not Found")
         if re.search(r'(=| |:|;|\")+[/]\S+(=| |:|;|\"|<)+', routeresponsebody, re.IGNORECASE):
@@ -809,27 +824,6 @@ else:
 print("")
 print("")
 dualprint("------------------------------------------------------------------------------------------------")
-print("")
-print(Fore.GREEN + "Low Priority Alerts:")
-print(Fore.WHITE + "")
-print(*alertLowset)
-print("")
-print("")
-dualprint("------------------------------------------------------------------------------------------------")
-print("")
-print(Fore.CYAN + "Medium Priority Alerts:")
-print(Fore.WHITE + "")
-print(*alertMedset)
-print("")
-print("")
-dualprint("------------------------------------------------------------------------------------------------")
-print("")
-print(Fore.RED + "High Priority Alerts:")
-print(Fore.WHITE + "")
-print(*alertHighset)
-print("")
-print("")
-dualprint("------------------------------------------------------------------------------------------------")
 print(Fore.GREEN + "Found secrets:")
 print(Fore.WHITE + "")
 print(*foundsecrets)
@@ -848,3 +842,51 @@ print(*founddebug)
 print(Fore.GREEN + "Found parsing errors:")
 print(Fore.WHITE + "")
 print(*foundparsing)
+dualprint("")
+dualprint("")
+dualprint("------------------------------------------------------------------------------------------------")
+dualprint("")
+print(Fore.GREEN + "Low Priority Alerts:")
+print(Fore.WHITE + "")
+print(*alertLowset)
+print("")
+print("")
+dualprint("------------------------------------------------------------------------------------------------")
+print("")
+print(Fore.CYAN + "Medium Priority Alerts:")
+print(Fore.WHITE + "")
+print(*alertMedset)
+print("")
+print("")
+print("------------------------------------------------------------------------------------------------")
+print("")
+print(Fore.RED + "High Priority Alerts:")
+print(Fore.WHITE + "")
+print(*alertHighset)
+if (outputmode == 2):
+  outfile = open(sys.argv[5],'a')
+  outfile.write("\r\n")
+  outfile.write("\r\n")
+  outfile.write("Low Priority Alerts:")
+  outfile.write("\r\n")
+  for alert in alertLowset:
+    outfile.write(alert)
+  outfile.close()
+if (outputmode == 2):
+  outfile = open(sys.argv[5],'a')
+  outfile.write("\r\n")
+  outfile.write("\r\n")
+  outfile.write("Medium Priority Alerts:")
+  outfile.write("\r\n")
+  for alert in alertMedset:
+    outfile.write(alert)
+  outfile.close()
+if (outputmode == 2):
+  outfile = open(sys.argv[5],'a')
+  outfile.write("\r\n")
+  outfile.write("\r\n")
+  outfile.write("High Priority Alerts:")
+  outfile.write("\r\n")
+  for alert in alertHighset:
+    outfile.write(alert)
+  outfile.close()
