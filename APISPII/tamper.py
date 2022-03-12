@@ -270,7 +270,7 @@ def regexchecks(responsebody, url):
                 #dualprint(*regresult)
                 #dualprint(regresult.group(0))
                 foundemails.add(email)
-        if (emailcounter > 15):
+        if (emailcounter > 9):
             alertname = " Alert:HIGH - High amount of Emails Found" + "\r\n"
             dualprint(Fore.RED + alertname)
             alertHighset.add(str(url.rstrip('\n') + alertname))
