@@ -270,6 +270,10 @@ def regexchecks(responsebody, url):
                 #dualprint(*regresult)
                 #dualprint(regresult.group(0))
                 foundemails.add(email)
+        if (emailcounter > 15):
+            alertname = " Alert:HIGH - High amount of Emails Found" + "\r\n"
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search('(lastname|firstname|first.name|last.name)', responsebody, re.IGNORECASE):
         piiList = piiList + " name |"
     # need to add social media links
