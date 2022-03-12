@@ -73,6 +73,11 @@ def regexchecks(responsebody, url):
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
         founddebug.add(str(url.rstrip('\n') + alertname))
+    if re.search(r'Laravel Client', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Possible Laravel Debug Page Found" + "\r\n"
+        if re.search(r'Stack trace', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'Action Controller..Exception caught', responsebody):
         alertname = " Alert:HIGH - Possible Ruby Debug Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
@@ -306,14 +311,14 @@ def testurl(url, showresponse=0, responseheaders=0, baseline=0):
         if (showresponse == 1):
             dualprint("Response Sample:")
             try:
-                dualprint(str(gzip.decompress(responsebody)[:300]))
+                dualprint(str(gzip.decompress(responsebody)[:350]))
                 #if re.search(r'\S+@\S+', gzip.decompress(responsebody)):
                 #    piiList = piiList + " email |"
                 #if re.search('(lastname|firstname|first.name|last.name)', gzip.decompress(responsebody), re.IGNORECASE):
                 #    piiList = piiList + " name |"
                 regexchecks(str(gzip.decompress(responsebody)), url)
             except:
-                dualprint(str(responsebody.decode("UTF-8", 'strict')[:300]))
+                dualprint(str(responsebody.decode("UTF-8", 'strict')[:350]))
                 #if re.search(r'\S+@\S+', responsebody.decode("utf8", 'ignore')):
                 #    piiList = piiList + " email |"
                 #if re.search('(lastname|firstname|first.name|last.name)', responsebody.decode("UTF-8", 'strict'), re.IGNORECASE):
@@ -582,7 +587,7 @@ def badstrings(url):
     "&","..","%","???",
     "*","%2e%2e%2f%23","%23","%3Fcanary%3Dx%26",
     ".json",".xml","../","%0d%0a","////////../../../etc/passwd",
-    "1\'%20OR%20\'1\'=\'1","%3Fhapikey%3D1xx39x89-c39f-465a-b278-fxx0xx046723%3D",
+    "1\'%20OR%20\'1\'=\'1","%3Fhapikey%3D1bbxxc89-c39f-4x5a-bx78-fae01804xxxx%26limit%3D",
     "%3Fapikey%3Dx278fxx0xx046723%3D","NULL","%C9","%252e%252e%252f",".git",".env"
     ]
     for badstring in bad_strings:
@@ -643,6 +648,10 @@ def testparams(url):
             time.sleep(sleepamt)
         for params in currparams:
             newurl = url.replace(params,params.replace("=","=http%3A%2F%2Fwww.example.com%3F"))
+            testurl(newurl, 1)
+            time.sleep(sleepamt)
+        for params in currparams:
+            newurl = url.replace(params,params.replace("=","=%27%3b"))
             testurl(newurl, 1)
             time.sleep(sleepamt)
     dualprint(Fore.WHITE)
