@@ -16,6 +16,7 @@ import socket
 from urllib.parse import urlparse
 from os import path
 from colorama import Fore, Back
+from difflib import SequenceMatcher
 
 i = 0
 quiet = "false"
@@ -49,6 +50,9 @@ except:
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 def dualprint(printstring):
     print(printstring)
@@ -235,8 +239,18 @@ def regexchecks(responsebody, url):
                     if regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","").replace("%22","").replace("%7C","").replace("%25","").replace("%5C","")[:-1] in foundpaths:
                         foundpaths.add(regresult.group(0))
                     else:
-                        dualprint(Fore.RED + alertname)
-                        alertMedset.add(str(url.rstrip('\n') + alertname))
+                        parsed = urlparse(url)
+                        urlbase = parsed.scheme + "://" + parsed.netloc
+                        urlpath = url.replace(urlbase,url)
+                        urlmatchperc = similar(urlpath, regresult.group(0))
+                        print(urlmatchperc)
+                        if (urlmatchperc > .45):
+                                dualprint(Fore.RED + alertname)
+                                alertMedset.add(str(url.rstrip('\n') + alertname))
+                        else:
+                                alertname = " Alert:HIGH - Possible backend API route" + "\r\n"
+                                dualprint(Fore.RED + alertname)
+                                alertHighset.add(str(url.rstrip('\n') + alertname))
                         foundpaths.add(regresult.group(0))
                         dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","")[:-1])
     #if re.search(r'\S+@\S+', responsebody):
