@@ -174,6 +174,22 @@ def regexchecks(responsebody, url):
                     dualprint(Fore.RED + alertname)
                     alertMedset.add(str(url.rstrip('\n') + alertname))
                     foundparsing.add(str(url.rstrip('\n') + alertname))
+    DBMS_ERRORS = {                                                                     # regular expressions used for DBMS recognition based on error message response
+    "MySQL": (r"SQL syntax.*MySQL", r"Warning.*mysql_.*", r"valid MySQL result", r"MySqlClient\."),
+    "PostgreSQL": (r"PostgreSQL.*ERROR", r"Warning.*\Wpg_.*", r"valid PostgreSQL result", r"Npgsql\."),
+    "Microsoft SQL Server": (r"Driver.* SQL[\-\_\ ]*Server", r"OLE DB.* SQL Server", r"(\W|\A)SQL Server.*Driver", r"Warning.*mssql_.*", r"(\W|\A)SQL Server.*[0-9a-fA-F]{8}", r"(?s)Exception.*\WSystem\.Data\.SqlClient\.", r"(?s)Exception.*\WRoadhouse\.Cms\."),
+    "Microsoft Access": (r"Microsoft Access Driver", r"JET Database Engine", r"Access Database Engine"),
+    "Oracle": (r"\bORA-[0-9][0-9][0-9][0-9]", r"Oracle error", r"Oracle.*Driver", r"Warning.*\Woci_.*", r"Warning.*\Wora_.*"),
+    "IBM DB2": (r"CLI Driver.*DB2", r"DB2 SQL error", r"\bdb2_\w+\("),
+    "SQLite": (r"SQLite/JDBCDriver", r"SQLite.Exception", r"System.Data.SQLite.SQLiteException", r"Warning.*sqlite_.*", r"Warning.*SQLite3::", r"\[SQLITE_ERROR\]"),
+    "Sybase": (r"(?i)Warning.*sybase.*", r"Sybase message", r"Sybase.*Server message.*"),
+    }
+    for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
+        if re.search(regex, responsebody, re.I):
+            alertname = " Alert:HIGH - Server side SQL error" + "\r\n"
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+            foundparsing.add(str(url.rstrip('\n') + alertname))
     if len(responsebody) > respsize and len(responsebody) > 300000:
         if re.search(r'doctype html', responsebody[:50], re.IGNORECASE):
             alertname = " Alert:MEDIUM - Large amount of data returned" + "\r\n"
@@ -181,16 +197,21 @@ def regexchecks(responsebody, url):
             alertMedset.add(str(url.rstrip('\n') + alertname))
             #foundlrgdata.add(str(url.rstrip('\n')))
         else:
-            alertname = " Alert:HIGH - Large amount of non html data returned" + "\r\n"
-            dualprint(Fore.RED + alertname)
-            alertHighset.add(str(url.rstrip('\n') + alertname))
-            foundlrgdata.add(str(url.rstrip('\n')))
+            if re.search(r'<html', responsebody[:50], re.IGNORECASE):
+                alertname = " Alert:MEDIUM - Large amount of data returned" + "\r\n"
+                dualprint(Fore.RED + alertname)
+                alertMedset.add(str(url.rstrip('\n') + alertname))
+            else:
+                alertname = " Alert:HIGH - Large amount of non html data returned" + "\r\n"
+                dualprint(Fore.RED + alertname)
+                alertHighset.add(str(url.rstrip('\n') + alertname))
+                foundlrgdata.add(str(url.rstrip('\n')))
     if re.search(r'JBWEB0000', responsebody):
-        alertname = " Alert:LOW - Possible JBOSS Error Page Found" + "\r\n"
+        alertname = " Alert:HIGH - Possible JBOSS Error Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
         alertHighset.add(str(url.rstrip('\n') + alertname))
         founddebug.add(str(url.rstrip('\n') + alertname))
-    if re.search(r'(apikey|api.key)', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
+    if re.search(r'(apikey|api.key)', responsebody.replace("hapikey%3D1bb39c89","").replace("hapikey=1bb39c89","").replace("hapikey%253D1bb39c89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
         regresult = re.search(r'(apikey|api.key)(=| |:|\")+\S+(=| |:|\")+', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
         regexsecret = regresult.group(0)
@@ -254,6 +275,12 @@ def regexchecks(responsebody, url):
                         foundpaths.add(regresult.group(0))
                         dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","")[:-1])
     #if re.search(r'\S+@\S+', responsebody):
+    if re.search(r'root:x', responsebody):
+        alertname = " Alert:HIGH - Possible Local File Inclusion" + "\r\n"
+        if re.search(r'passwd', url):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+        #founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody):
         regresult = re.findall('([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', responsebody)
         print(Fore.RED)
@@ -605,8 +632,9 @@ def badstrings(url):
     "&","..","%","???",
     "*","%2e%2e%2f%23","%23","%3Fcanary%3Dx%26",
     ".json",".xml","../","%0d%0a","////////../../../etc/passwd",
-    "1\'%20OR%20\'1\'=\'1","%3Fhapikey%3D1bbxxc89-c39f-4x5a-bx78-fae01804xxxx%26limit%3D",
-    "%3Fapikey%3Dx278fxx0xx046723%3D","NULL","%C9","%252e%252e%252f",".git",".env"
+    "actuator/heapdump","%3Fhapikey%3D1bb39c89-c39f-465a-b278-fae018046723%26limit%3D",
+    "%3Fapikey%3Dx278fxx0xx046723%3D","%C9","%252e%252e%252f",".git",".env",
+    "/etc/passwd","%3Fapi_key%3Dx278fxx0xx046723%3D"
     ]
     for badstring in bad_strings:
         urlbase = urlparse(url).scheme + "://" +  urlparse(url).netloc
